@@ -24,6 +24,8 @@ import be.cytomine.middleware.MessageBrokerServer
 import be.cytomine.security.SecUser
 import be.cytomine.utils.ModelService
 import be.cytomine.utils.Task
+import com.jcraft.jsch.JSch
+import grails.util.Holders
 import groovy.json.JsonBuilder
 import org.springframework.security.acls.domain.BasePermission
 
@@ -113,6 +115,18 @@ class ProcessingServerService extends ModelService {
             jsonBuilder(message)
 
             amqpQueueService.publishMessage(AmqpQueue.findByName("queueCommunication"), jsonBuilder.toString())
+
+            //get the path and name for the SSH Keysfiles
+            String keyPath=Holders.getGrailsApplication().config.grails.serverSshKeysPath
+            String prefixFile=Holders.getGrailsApplication().config.grails.prefixNameOfSSHFile
+            keyPath+=prefixFile
+            keyPath+="_"
+            keyPath+=(domain as ProcessingServer).id
+            //creation of ssh keys for this processingServer
+            com.jcraft.jsch.KeyPair kpair=com.jcraft.jsch.KeyPair.genKeyPair(new JSch(),com.jcraft.jsch.KeyPair.RSA)
+            kpair.writePrivateKey(keyPath)
+            kpair.writePublicKey(keyPath+".pub","comment")
+
         }
     }
 
