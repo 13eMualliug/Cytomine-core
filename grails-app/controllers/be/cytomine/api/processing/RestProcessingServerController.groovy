@@ -59,7 +59,7 @@ class RestProcessingServerController extends RestController {
     def getPublicKey(){
         ProcessingServer processingServer = processingServerService.read(params.long('id'))
         if (processingServer) {
-            String nom= processingServer.host+".pub"
+            String name= processingServer.host+".pub"
             downloadFile(processingServerService.publicKeyProcessingServer(params.long('id')),nom,"text/plain")
         } else {
             responseNotFound("ProcessingServer", params.id)
