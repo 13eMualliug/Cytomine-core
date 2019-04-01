@@ -88,18 +88,14 @@ class ProcessingServerService extends ModelService {
     def publicKeyProcessingServer(Long id) throws CytomineException {
         SecUser currentUser = cytomineService.getCurrentUser()
         securityACLService.checkAdmin(currentUser)
-            ProcessingServer processingServer = ProcessingServer.findById(id)
+        ProcessingServer processingServer = ProcessingServer.findById(id)
 
-            String keyPath=Holders.getGrailsApplication().config.grails.serverSshKeysPath
-            keyPath+="/"
-            keyPath+=processingServer.host
-            keyPath+="/"
-            keyPath+=processingServer.host+".pub"
-
-            try {
-                String text = new String(Files.readAllBytes(Paths.get(keyPath)))
-                return text
-            } catch (IOException e) { e.printStackTrace() }
+        String keyPath=Holders.getGrailsApplication().config.grails.serverSshKeysPath
+        keyPath+="/"
+        keyPath+=processingServer.host
+        keyPath+="/"
+        keyPath+=processingServer.host+".pub"
+        return keyPath
 
         }
 
