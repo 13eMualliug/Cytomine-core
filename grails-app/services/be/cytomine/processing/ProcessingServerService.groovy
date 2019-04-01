@@ -29,6 +29,9 @@ import grails.util.Holders
 import groovy.json.JsonBuilder
 import org.springframework.security.acls.domain.BasePermission
 
+import java.nio.file.Files
+import java.nio.file.Paths
+
 import static org.springframework.security.acls.domain.BasePermission.WRITE
 
 class ProcessingServerService extends ModelService {
@@ -81,6 +84,25 @@ class ProcessingServerService extends ModelService {
         return executeCommand(c, domain, null)
     }
 
+
+    def publicKeyProcessingServer(Long id) throws CytomineException {
+        SecUser currentUser = cytomineService.getCurrentUser()
+        securityACLService.checkAdmin(currentUser)
+            ProcessingServer processingServer = ProcessingServer.findById(id)
+
+            String keyPath=Holders.getGrailsApplication().config.grails.serverSshKeysPath
+            keyPath+="/"
+            keyPath+=processingServer.host
+            keyPath+="/"
+            keyPath+=processingServer.host+".pub"
+
+            try {
+                String text = new String(Files.readAllBytes(Paths.get(keyPath)))
+                return text
+            } catch (IOException e) { e.printStackTrace() }
+
+        }
+
     @Override
     def getStringParamsI18n(def domain) {
         return [domain.name]
@@ -89,7 +111,6 @@ class ProcessingServerService extends ModelService {
     @Override
     def afterAdd(Object domain, Object response) {
         aclUtilService.addPermission(domain, cytomineService.currentUser.username, BasePermission.ADMINISTRATION)
-
         String queueName = amqpQueueService.queuePrefixProcessingServer + ((domain as ProcessingServer).name).capitalize()
         if (!amqpQueueService.checkAmqpQueueDomainExists(queueName)) {
             // Creates the new queue
@@ -118,27 +139,23 @@ class ProcessingServerService extends ModelService {
 
             //get the path and name for the SSH Keysfiles
             String keyPath=Holders.getGrailsApplication().config.grails.serverSshKeysPath
-            //on recupere le hostname
-            String pathToCreate=(domain as ProcessingServer).host
+
+            String hostName=(domain as ProcessingServer).host
             keyPath+="/"
-            keyPath+=pathToCreate
+            keyPath+=hostName
             try {
                 File f = new File(keyPath)
                 boolean bool = false
                 bool = f.mkdir()
                 log.info("Directory $keyPath created? $bool")
-            } catch(Exception e) {
-                // if any error occurs
-                e.printStackTrace()
-            }
-            keyPath+="/"+pathToCreate
-            def  a = 5
-            log.info("$a   $keyPath")
-            //creation of ssh keys for this processingServer
-            com.jcraft.jsch.KeyPair kpair=com.jcraft.jsch.KeyPair.genKeyPair(new JSch(),com.jcraft.jsch.KeyPair.RSA)
-            kpair.writePrivateKey(keyPath)
-            kpair.writePublicKey(keyPath+".pub","comment")
-
+                if(bool)
+                {
+                    keyPath+="/"+hostName
+                    com.jcraft.jsch.KeyPair kpair=com.jcraft.jsch.KeyPair.genKeyPair(new JSch(),com.jcraft.jsch.KeyPair.RSA)
+                    kpair.writePrivateKey(keyPath)
+                    kpair.writePublicKey(keyPath+".pub","public key of $hostName")
+                }
+            } catch(Exception e) {e.printStackTrace()}
         }
     }
 
