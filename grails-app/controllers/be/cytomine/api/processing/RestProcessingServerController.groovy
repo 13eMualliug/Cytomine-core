@@ -19,11 +19,15 @@ package be.cytomine.api.processing
 import be.cytomine.api.RestController
 import be.cytomine.processing.ProcessingServer
 import grails.converters.JSON
+import grails.util.Holders
 import org.restapidoc.annotation.RestApiMethod
 import org.restapidoc.annotation.RestApiObject
 import org.restapidoc.annotation.RestApiParam
 import org.restapidoc.annotation.RestApiParams
 import org.restapidoc.pojo.RestApiParamType
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 @RestApiObject(name = "Processing server services", description = "Methods for managing processing servers")
 class RestProcessingServerController extends RestController {
@@ -46,6 +50,20 @@ class RestProcessingServerController extends RestController {
         } else {
             responseNotFound("ProcessingServer", params.id)
         }
+    }
+
+    @RestApiMethod(description = "Get the public key of a specific processing server")
+    @RestApiParams(params = [
+            @RestApiParam(name = "id", type = "long", paramType = RestApiParamType.PATH, description = "The processing server id")
+    ])
+    def getPublicKey(){
+        ProcessingServer processingServer = processingServerService.read(params.long('id'))
+        if (processingServer) {
+            responseText(processingServerService.publicKeyProcessingServer(params.long('id')))
+        } else {
+            responseNotFound("ProcessingServer", params.id)
+        }
+
     }
 
     @RestApiMethod(description = "Add a new processing server to Cytomine")
