@@ -88,40 +88,28 @@ class BootstrapOldVersionService {
     void init20190401(){
         log.info "20190401"
 
-        //on retrieve tout les processing server
         Collection<ProcessingServer> processingServerCollection=ProcessingServer.findAll()
         for(int i=0;i<processingServerCollection.size();i++)
         {
             ProcessingServer psTmp=processingServerCollection.get(i)
-            log.info("Processing server ${psTmp.id} name: ${psTmp.name} host: ${psTmp.host} username: ${psTmp.username} ")
-            log.info("=======================================================================")
-            //on va crée en dur les mkdir
-                //get the path and name for the SSH Keysfiles
-                String keyPath= Holders.getGrailsApplication().config.grails.serverSshKeysPath
-                //on recupere le hostname
-            log.info("$keyPath")
-                String pathToCreate=psTmp.host
-                keyPath+="/"
-            log.info("$keyPath")
-                keyPath+=pathToCreate
-            log.info("$keyPath")
+            String keyPath= Holders.getGrailsApplication().config.grails.serverSshKeysPath
 
-                try {
-                    File f = new File(keyPath)
-                    boolean bool = false
-                    bool = f.mkdir()
-                    log.info("Directory $keyPath created? $bool")
-                } catch(Exception e) {
-                    // if any error occurs
-                    e.printStackTrace()
+            String hostName=psTmp.host
+            keyPath+="/"
+            keyPath+=hostName
+            try {
+                File f = new File(keyPath)
+                boolean bool = false
+                bool = f.mkdir()
+                log.info("Directory $keyPath created? $bool")
+                if(bool)
+                {
+                    keyPath+="/"+hostName
+                    com.jcraft.jsch.KeyPair kpair=com.jcraft.jsch.KeyPair.genKeyPair(new JSch(),com.jcraft.jsch.KeyPair.RSA)
+                    kpair.writePrivateKey(keyPath)
+                    kpair.writePublicKey(keyPath+".pub","public key of $hostName")
                 }
-                keyPath+="/"+pathToCreate
-                def  a = 5
-                log.info("$a   $keyPath")
-                //creation of ssh keys for this processingServer
-                com.jcraft.jsch.KeyPair kpair=com.jcraft.jsch.KeyPair.genKeyPair(new JSch(),com.jcraft.jsch.KeyPair.RSA)
-                kpair.writePrivateKey(keyPath)
-                kpair.writePublicKey(keyPath+".pub","comment")
+            } catch(Exception e) {e.printStackTrace()}
         }
     }
 
