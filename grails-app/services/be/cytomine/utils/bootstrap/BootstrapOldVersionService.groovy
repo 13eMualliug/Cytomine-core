@@ -22,17 +22,22 @@ import be.cytomine.image.server.Storage
 import be.cytomine.image.server.StorageAbstractImage
 import be.cytomine.image.UploadedFile
 import be.cytomine.middleware.AmqpQueue
+import be.cytomine.middleware.MessageBrokerServer
 import be.cytomine.ontology.Property
 import be.cytomine.processing.ImageFilter
 import be.cytomine.processing.ImagingServer
+import be.cytomine.processing.ProcessingServer
 import be.cytomine.project.Project
 import be.cytomine.security.SecRole
 import be.cytomine.security.SecUser
 import be.cytomine.security.SecUserSecRole
 import be.cytomine.security.User
 import be.cytomine.utils.Version
+import com.jcraft.jsch.JSch
 import grails.converters.JSON
 import grails.plugin.springsecurity.SpringSecurityUtils
+import grails.util.Holders
+import groovy.json.JsonBuilder
 import groovy.sql.Sql
 import org.apache.commons.io.FilenameUtils
 
@@ -79,6 +84,45 @@ class BootstrapOldVersionService {
         }
 
         Version.setCurrentVersion(Long.parseLong(grailsApplication.metadata.'app.versionDate'))
+    }
+    void init20190401(){
+        log.info "20190401"
+
+        //on retrieve tout les processing server
+        Collection<ProcessingServer> processingServerCollection=ProcessingServer.findAll()
+        for(int i=0;i<processingServerCollection.size();i++)
+        {
+            ProcessingServer psTmp=processingServerCollection.get(i)
+            log.info("Processing server ${psTmp.id} name: ${psTmp.name} host: ${psTmp.host} username: ${psTmp.username} ")
+            log.info("=======================================================================")
+            //on va crée en dur les mkdir
+                //get the path and name for the SSH Keysfiles
+                String keyPath= Holders.getGrailsApplication().config.grails.serverSshKeysPath
+                //on recupere le hostname
+            log.info("$keyPath")
+                String pathToCreate=psTmp.host
+                keyPath+="/"
+            log.info("$keyPath")
+                keyPath+=pathToCreate
+            log.info("$keyPath")
+
+                try {
+                    File f = new File(keyPath)
+                    boolean bool = false
+                    bool = f.mkdir()
+                    log.info("Directory $keyPath created? $bool")
+                } catch(Exception e) {
+                    // if any error occurs
+                    e.printStackTrace()
+                }
+                keyPath+="/"+pathToCreate
+                def  a = 5
+                log.info("$a   $keyPath")
+                //creation of ssh keys for this processingServer
+                com.jcraft.jsch.KeyPair kpair=com.jcraft.jsch.KeyPair.genKeyPair(new JSch(),com.jcraft.jsch.KeyPair.RSA)
+                kpair.writePrivateKey(keyPath)
+                kpair.writePublicKey(keyPath+".pub","comment")
+        }
     }
 
     void init20180904() {
