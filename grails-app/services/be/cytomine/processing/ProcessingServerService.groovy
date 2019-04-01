@@ -118,10 +118,22 @@ class ProcessingServerService extends ModelService {
 
             //get the path and name for the SSH Keysfiles
             String keyPath=Holders.getGrailsApplication().config.grails.serverSshKeysPath
-            String prefixFile=Holders.getGrailsApplication().config.grails.prefixNameOfSSHFile
-            keyPath+=prefixFile
-            keyPath+="_"
-            keyPath+=(domain as ProcessingServer).id
+            //on recupere le hostname
+            String pathToCreate=(domain as ProcessingServer).host
+            keyPath+="/"
+            keyPath+=pathToCreate
+            try {
+                File f = new File(keyPath)
+                boolean bool = false
+                bool = f.mkdir()
+                log.info("Directory $keyPath created? $bool")
+            } catch(Exception e) {
+                // if any error occurs
+                e.printStackTrace()
+            }
+            keyPath+="/"+pathToCreate
+            def  a = 5
+            log.info("$a   $keyPath")
             //creation of ssh keys for this processingServer
             com.jcraft.jsch.KeyPair kpair=com.jcraft.jsch.KeyPair.genKeyPair(new JSch(),com.jcraft.jsch.KeyPair.RSA)
             kpair.writePrivateKey(keyPath)
